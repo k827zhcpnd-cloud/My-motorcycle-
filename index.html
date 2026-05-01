@@ -1,0 +1,35 @@
+<!-- הוספתי בתחתית הקוד (לפני סגירת ה-body) את המנגנון הזה -->
+<div class="card" style="background: rgba(0,0,0,0.5); border: 1px dashed #38bdf8;">
+    <h4 style="margin-top:0; font-size:14px;">💾 גיבוי ענן ידני (WhatsApp)</h4>
+    <div style="display:flex; gap:10px;">
+        <button onclick="exportData()" style="background:#25d366; font-size:12px;">העתק גיבוי לווטסאפ</button>
+        <button onclick="importData()" style="background:#555; font-size:12px;">שחזר מגיבוי</button>
+    </div>
+</div>
+
+<script>
+// פונקציית ייצוא - הופכת הכל לטקסט שניתן לשלוח בווטסאפ
+function exportData() {
+    const data = localStorage.getItem("fleet_v5_date");
+    if (!data) return alert("אין נתונים לגיבוי");
+    
+    // מעתיק ללוח של הטלפון
+    navigator.clipboard.writeText(data).then(() => {
+        alert("כל הנתונים הועתקו! עכשיו שלח אותם לעצמך בווטסאפ כגיבוי.");
+    });
+}
+
+// פונקציית שחזור - לוקחת טקסט מהווטסאפ ומחזירה לאפליקציה
+function importData() {
+    const data = prompt("הדבק כאן את קוד הגיבוי ששלחת לעצמך:");
+    if (data) {
+        try {
+            JSON.parse(data); // בדיקה שהקוד תקין
+            localStorage.setItem("fleet_v5_date", data);
+            location.reload(); // רענון האפליקציה
+        } catch(e) {
+            alert("קוד לא תקין!");
+        }
+    }
+}
+</script>
