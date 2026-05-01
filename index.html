@@ -1,35 +1,184 @@
-<!-- הוספתי בתחתית הקוד (לפני סגירת ה-body) את המנגנון הזה -->
-<div class="card" style="background: rgba(0,0,0,0.5); border: 1px dashed #38bdf8;">
-    <h4 style="margin-top:0; font-size:14px;">💾 גיבוי ענן ידני (WhatsApp)</h4>
-    <div style="display:flex; gap:10px;">
-        <button onclick="exportData()" style="background:#25d366; font-size:12px;">העתק גיבוי לווטסאפ</button>
-        <button onclick="importData()" style="background:#555; font-size:12px;">שחזר מגיבוי</button>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ניהול צי אופנועים</title>
+<script src="https://jsdelivr.net"></script>
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin:0; padding:15px; background: #0f172a; color:white; min-height: 100vh; }
+    .header { text-align:center; padding: 15px; background: #1e293b; border-radius: 15px; margin-bottom: 15px; }
+    .dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-card { background: #1e293b; padding: 10px; border-radius: 12px; text-align: center; border-bottom: 4px solid #334155; }
+    .stat-card.profit { border-color: #00e676; }
+    .stat-card.expense { border-color: #ff5252; }
+    .stat-val { font-size: 14px; font-weight: bold; display: block; }
+    .stat-label { font-size: 10px; color: #94a3b8; }
+    .tabs { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-bottom: 10px; }
+    .tab { padding: 10px 20px; background: #334155; border-radius: 20px; cursor: pointer; white-space: nowrap; transition: 0.2s; font-size:14px; }
+    .tab.active { background: #38bdf8; font-weight: bold; border: 1px solid white; }
+    .card { background: #1e293b; padding:15px; border-radius:15px; margin-bottom:15px; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; outline: none; font-size: 14px; }
+    button { padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.1s; }
+    .btn65 { background:#00c853; color:white; flex: 1; }
+    .btn-minus { background: #ff5252; color: white; flex: 1; }
+    .btn-add { background: #38bdf8; color: white; width: 80px; }
+    .chart-container { height: 160px; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; min-width: 400px; }
+    th, td { padding: 10px 5px; text-align: center; border-bottom: 1px solid #334155; font-size: 12px; }
+    .total-column { font-weight: bold; color: #00e676; }
+    .negative { color: #ff5252; }
+    .date-col { font-size: 10px; color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="dashboard">
+        <div class="stat-card expense"><span class="stat-label">הוצאה כוללת</span><span id="totalExpenses" class="stat-val">0</span></div>
+        <div class="stat-card"><span class="stat-label">הכנסה כוללת</span><span id="totalIncome" class="stat-val">0</span></div>
+        <div class="stat-card profit"><span class="stat-label">רווח נקי</span><span id="netProfit" class="stat-val">0</span></div>
+    </div>
+    <div class="tabs" id="bikeTabs"></div>
+</div>
+
+<div id="mainContent">
+    <div class="card">
+        <div class="input-row">
+            <input id="bikeNameEdit" placeholder="שם הכלי" onchange="updateBikeInfo()">
+            <input id="baseAmount" type="number" placeholder="מחיר קנייה" onchange="updateBikeInfo()" style="width: 100px;">
+        </div>
+        <div class="chart-container"><canvas id="profitChart"></canvas></div>
+        <div class="input-row">
+            <input id="customer" placeholder="תיאור / לקוח">
+            <input id="hours" placeholder="שעות" style="width: 70px;">
+        </div>
+        <div class="input-row">
+            <input id="customAmount" type="number" placeholder="סכום">
+            <button class="btn-add" onclick="addEntry(null, 'plus')">הוסף</button>
+        </div>
+        <div class="input-row">
+            <button class="btn65" onclick="addEntry(65, 'plus')">הכנסה (+) 65</button>
+            <button class="btn-minus" onclick="addEntry(null, 'minus')">הוצאה (-)</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="overflow-x:auto;">
+            <table>
+                <thead><tr><th>תאריך וזמן</th><th>תיאור</th><th>סכום</th><th>יתרה</th><th></th></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <button onclick="deleteBike()" style="color:#ef4444; background:none; width:100%; font-size:12px; margin-top:20px;">🗑️ מחק אופנוע זה</button>
+    </div>
+
+    <div class="card" style="border: 1px dashed #38bdf8;">
+        <h4 style="margin:0 0 10px 0; font-size:12px;">💾 גיבוי ענן ידני (WhatsApp)</h4>
+        <div style="display:flex; gap:10px;">
+            <button onclick="exportData()" style="background:#25d366; color:white; font-size:11px; flex:1;">העתק גיבוי לווטסאפ</button>
+            <button onclick="importData()" style="background:#555; color:white; font-size:11px; flex:1;">שחזר מגיבוי</button>
+        </div>
     </div>
 </div>
 
 <script>
-// פונקציית ייצוא - הופכת הכל לטקסט שניתן לשלוח בווטסאפ
-function exportData() {
-    const data = localStorage.getItem("fleet_v5_date");
-    if (!data) return alert("אין נתונים לגיבוי");
-    
-    // מעתיק ללוח של הטלפון
-    navigator.clipboard.writeText(data).then(() => {
-        alert("כל הנתונים הועתקו! עכשיו שלח אותם לעצמך בווטסאפ כגיבוי.");
-    });
-}
+    let bikes = JSON.parse(localStorage.getItem("fleet_final_v5") || "[]");
+    let activeIndex = parseInt(localStorage.getItem("active_idx") || 0);
+    let myChart = null;
 
-// פונקציית שחזור - לוקחת טקסט מהווטסאפ ומחזירה לאפליקציה
-function importData() {
-    const data = prompt("הדבק כאן את קוד הגיבוי ששלחת לעצמך:");
-    if (data) {
-        try {
-            JSON.parse(data); // בדיקה שהקוד תקין
-            localStorage.setItem("fleet_v5_date", data);
-            location.reload(); // רענון האפליקציה
-        } catch(e) {
-            alert("קוד לא תקין!");
-        }
+    if (bikes.length === 0) bikes.push({ name: "אופנוע 1", base: -500, rows: [] });
+
+    function calculateGlobal() {
+        let exp = 0, inc = 0;
+        bikes.forEach(b => {
+            exp += Math.abs(b.base);
+            b.rows.forEach(r => { if(r.amount > 0) inc += r.amount; else exp += Math.abs(r.amount); });
+        });
+        document.getElementById("totalExpenses").innerText = exp.toLocaleString() + "$";
+        document.getElementById("totalIncome").innerText = inc.toLocaleString() + "$";
+        const net = inc - exp;
+        const netEl = document.getElementById("netProfit");
+        netEl.innerText = net.toLocaleString() + "$";
+        netEl.style.color = net >= 0 ? "#00e676" : "#ff5252";
     }
-}
+
+    function renderTabs() {
+        const tabs = document.getElementById("bikeTabs");
+        if(!tabs) return;
+        tabs.innerHTML = bikes.map((b, i) => `<div class="tab ${i==activeIndex?'active':''}" onclick="switchBike(${i})">${b.name}</div>`).join('') 
+            + `<div class="tab" style="color:#00e676;" onclick="addNewBikePrompt()">+ חדש</div>`;
+        calculateGlobal();
+        renderContent();
+    }
+
+    function renderContent() {
+        const bike = bikes[activeIndex];
+        if (!bike) return;
+        const bikeNameInput = document.getElementById("bikeNameEdit");
+        const baseAmountInput = document.getElementById("baseAmount");
+        if(bikeNameInput) bikeNameInput.value = bike.name;
+        if(baseAmountInput) baseAmountInput.value = Math.abs(bike.base);
+        
+        const tableBody = document.getElementById("tableBody");
+        if(!tableBody) return;
+        tableBody.innerHTML = "";
+        
+        let current = Number(bike.base), history = [current], labels = ["0"];
+        bike.rows.forEach(r => { current += Number(r.amount); history.push(current); labels.push(r.customer); });
+        
+        [...bike.rows].reverse().forEach((r, i) => {
+            const idx = bike.rows.length - 1 - i;
+            let tempTotal = Number(bike.base);
+            for(let j=0; j<=idx; j++) tempTotal += Number(bike.rows[j].amount);
+            tableBody.innerHTML += `<tr><td class="date-col">${r.date}<br>${r.time}</td><td>${r.customer}</td><td style="color:${r.amount>=0?'#00e676':'#ff5252'}">${r.amount}</td><td class="total-column ${tempTotal<0?'negative':''}">${tempTotal}</td><td onclick="delRow(${idx})">❌</td></tr>`;
+        });
+        drawChart(labels, history);
+    }
+
+    function drawChart(l, d) {
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, { type:'line', data:{ labels:l, datasets:[{ data:d, borderColor:'#38bdf8', fill:true, backgroundColor:'rgba(56,189,248,0.1)', tension:0.3 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false},y:{ticks:{color:'#64748b'}}} } });
+    }
+
+    function addNewBikePrompt() {
+        const name = prompt("שם הכלי:");
+        const cost = prompt("מחיר קנייה:", "500");
+        if (name && cost) { bikes.push({ name: name, base: -Math.abs(cost), rows: [] }); activeIndex = bikes.length - 1; save(); }
+    }
+
+    function updateBikeInfo() {
+        const bike = bikes[activeIndex];
+        bike.name = document.getElementById("bikeNameEdit").value;
+        bike.base = -Math.abs(document.getElementById("baseAmount").value);
+        save();
+    }
+
+    function addEntry(fixed, mode) {
+        const bike = bikes[activeIndex];
+        let amt = fixed || document.getElementById("customAmount").value;
+        const cust = document.getElementById("customer").value;
+        if (!cust || !amt) return;
+        amt = Number(amt);
+        if (mode === 'minus') amt = -Math.abs(amt);
+        const now = new Date();
+        bike.rows.push({ customer:cust, hours:document.getElementById("hours").value, amount:amt, time:now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), date:now.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'}) });
+        document.getElementById("customer").value = "";
+        document.getElementById("hours").value = "";
+        document.getElementById("customAmount").value = "";
+        save();
+    }
+
+    function switchBike(i) { activeIndex = i; save(); }
+    function delRow(i) { if(confirm("למחוק?")) { bikes[activeIndex].rows.splice(i,1); save(); } }
+    function deleteBike() { if(confirm("למחוק הכל?")) { bikes.splice(activeIndex,1); activeIndex=0; if(bikes.length==0) bikes.push({name:"אופנוע 1",base:-500,rows:[]}); save(); } }
+    function save() { localStorage.setItem("fleet_final_v5", JSON.stringify(bikes)); localStorage.setItem("active_idx", activeIndex); renderTabs(); }
+    function exportData() { const data = localStorage.getItem("fleet_final_v5"); if(data) { navigator.clipboard.writeText(data); alert("הנתונים הועתקו! שלח לעצמך בווטסאפ."); } }
+    function importData() { const data = prompt("הדבק קוד גיבוי:"); if(data) { try { JSON.parse(data); localStorage.setItem("fleet_final_v5", data); location.reload(); } catch(e){alert("טעות בקוד");} } }
+
+    window.onload = renderTabs;
 </script>
+</body>
+</html>
